@@ -1,0 +1,24 @@
+# Secrets
+.env
+
+# Editor settings
+.idea/
+.vscode/
+
+# Python-generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Logs
+*.log
+
+# Live application state
+data/hardcore_state.json
+
+# Local Minecraft servers and saved worlds
+hardcore_server/
+hardcore_runs/
+backups/
