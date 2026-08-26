@@ -10,6 +10,9 @@ import os
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+from hardcore.monitor import ParsedDeath
+from hardcore.service import format_death_announcement
+
 # loading RCON password
 OLD_RCON_PASSWORD = os.getenv("OLD_RCON_PASSWORD")
 
@@ -225,6 +228,26 @@ async def status_hardcore(ctx):
         await ctx.send("🟢 The Hardcore server is online.")
     else:
         await ctx.send("🔴 The Hardcore server is offline.")
+
+
+@bot.command(name="testHCdeath", aliases=["testhcdeath"])
+async def test_hardcore_death(ctx):
+    if ctx.author.id not in AUTHORIZED_USERS:
+        await ctx.send ("Sorry! You're not authorized to use this command!")
+        return
+
+    death = ParsedDeath(
+        player="TestPlayer",
+        cause="creeper",
+        message="TestPlayer was blown up by Creeper",
+    )
+
+    announcement = format_death_announcement(run_number=6, death=death)
+
+    await ctx.send(announcement)
+
+
+
 
 
 
