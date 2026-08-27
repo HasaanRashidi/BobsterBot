@@ -1,5 +1,5 @@
 from hardcore.monitor import ParsedDeath
-from hardcore.state import DeathRecord, HardcoreState
+from hardcore.state import DeathRecord, HardcoreState, default_boss_progress
 
 
 
@@ -38,3 +38,15 @@ def record_death(
     state.status = "DEAD"
 
     return record
+
+
+def prepare_next_run(state: HardcoreState) -> bool:
+    if state.status != "DEAD":
+        return False
+
+    state.run_number += 1
+    state.status = "STOPPED"
+    state.world_folder = "world"
+    state.bosses = default_boss_progress()
+
+    return True
