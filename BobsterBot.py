@@ -273,11 +273,20 @@ async def start_hardcore(ctx):
         await ctx.send("❌ You are not authorized to start the Hardcore server.")
         return
 
+    if hardcore_state.status == "DEAD":
+        await ctx.send(
+            f"💀 Run {hardcore_state.run_number} has already ended. "
+            "Create the next run before restarting."
+        )
+        return
+
     try:
         await asyncio.to_thread(hardcore_server.start)
         await ctx.send("⏳ Starting the vanilla Hardcore server...")
         online = await asyncio.to_thread(hardcore_server.wait_until_online, 120)
         if online:
+            hardcore_state.status = "RUNNING"
+            save_state(HARDCORE_STATE_PATH, hardcore_state)
             await ctx.send("❤️ The Hardcore server is online. Good luck!")
         else:
             await ctx.send(
@@ -296,6 +305,11 @@ async def stop_hardcore(ctx):
 
     try:
         await asyncio.to_thread(hardcore_server.stop, 60)
+
+        if hardcore_state.status != "DEAD":
+            hardcore_state.status = "STOPPED"
+            save_state(HARDCORE_STATE_PATH, hardcore_state)
+
         await ctx.send("💾 The Hardcore world was saved and the server stopped.")
     except Exception as error:
         await ctx.send(f"❌ Could not stop the Hardcore server: {error}")
