@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 @dataclass(frozen=True)
 class ParsedDeath:
@@ -46,3 +47,35 @@ def parse_death_message(log_line: str) -> ParsedDeath | None:
 FIXED_CAUSE_DEATH_SUFFIXES = (
     (" fell from a high place", "fall"),
 )
+
+def parse_deaths_from_lines(lines: list[str]) -> list[ParsedDeath]:
+    deaths = []
+
+    for line in lines:
+        death = parse_death_message(line)
+
+        if death is not None:
+            deaths.append(death)
+
+    return deaths
+
+
+def read_new_log_lines(
+        log_path: Path,
+        position: int,
+) -> tuple[list[str], int]:
+    if not log_path.exists():
+        return [], position
+
+    with log_path.open("r", encoding="utf-8") as file:
+        file.seek(0, 2)
+        end_position = file.tell()
+
+        if position > end_position:
+            position = 0
+
+        file.seek(position)
+        lines = file.readlines()
+        new_position = file.tell()
+
+    return lines, new_position
