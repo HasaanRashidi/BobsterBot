@@ -20,7 +20,9 @@ from hardcore.monitor import (
     parse_deaths_from_lines,
     read_new_log_lines,
 )
-from hardcore.service import format_death_announcement, record_death
+from hardcore.service import format_death_announcement, record_death, prepare_next_run
+
+from hardcore.worlds import archive_worlds
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -71,6 +73,13 @@ HARDCORE_LOG_PATH = (
 PROJECT_ROOT = Path(__file__).resolve().parent
 HARDCORE_STATE_PATH = PROJECT_ROOT / "data" / "hardcore_state.json"
 hardcore_state = load_state(HARDCORE_STATE_PATH)
+
+HC_ARCHIVE_DIRECTORY_TEXT = os.getenv("HC_ARCHIVE_DIRECTORY")
+HC_ARCHIVE_DIRECTORY = (
+    Path(HC_ARCHIVE_DIRECTORY_TEXT)
+    if HC_ARCHIVE_DIRECTORY_TEXT
+    else None
+)
 
 
 hardcore_log_position = 0
@@ -328,6 +337,56 @@ async def status_hardcore(ctx):
         f"Challenge status: {hardcore_state.status}\n"
         f"Server connection: {server_status}"
     )
+
+
+@bot.command(name="nextHC", aliases=["nexthc"])
+async def next_hardcore(ctx):
+    global hardcore_log_position, hardcore_log_initialized
+
+    if ctx.author.id not in AUTHORIZED_USERS:
+        await ctx.send("❌ You are not authorized to prepare the next run.")
+        return
+
+    if hardcore_state.status != "DEAD":
+        await ctx.send(f"❌ Run {hardcore_state.run_number} has not ended yet.")
+        return
+
+    online = await asyncio.to_thread(hardcore_server.is_online)
+    if online:
+        await ctx.send("❌ Stop the Hardcore Server before preparing the next run.")
+        return
+
+    if HC_ARCHIVE_DIRECTORY is None:
+        await ctx.send("❌ HC_ARCHIVE_DIRECTORY has not been configured.")
+        return
+
+    try:
+        archive_path = await asyncio.to_thread(
+            archive_worlds,
+            server_directory=hardcore_server.config.server_directory,
+            archive_directory=HC_ARCHIVE_DIRECTORY,
+            run_number=hardcore_state.run_number,
+        )
+
+        prepare_next_run(hardcore_state)
+        save_state(HARDCORE_STATE_PATH, hardcore_state)
+
+        hardcore_log_position = 0
+        hardcore_log_initialized = False
+
+        await ctx.send(
+            f"✅ Previous world archived to `{archive_path}`.\n"
+            f"🌎 Hardcore Run {hardcore_state.run_number} is ready!"
+        )
+
+    except FileExistsError as error:
+        await ctx.send(f"❌ Could not archive the world: {error}")
+
+    except FileNotFoundError as error:
+        await ctx.send(f"❌ A required world folder is missing: {error}")
+
+    except Exception as error:
+        await ctx.send(f"❌ Could not prepare the next run: {error}")
 
 
 @bot.command(name="testHCdeath", aliases=["testhcdeath"])
