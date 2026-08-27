@@ -319,9 +319,15 @@ async def stop_hardcore(ctx):
 async def status_hardcore(ctx):
     online = await asyncio.to_thread(hardcore_server.is_online)
     if online:
-        await ctx.send("🟢 The Hardcore server is online.")
+        server_status = "🟢 ONLINE"
     else:
-        await ctx.send("🔴 The Hardcore server is offline.")
+        server_status = "🔴 OFFLINE"
+
+    await ctx.send(
+        f"🏰 Hardcore Run {hardcore_state.run_number}\n"
+        f"Challenge status: {hardcore_state.status}\n"
+        f"Server connection: {server_status}"
+    )
 
 
 @bot.command(name="testHCdeath", aliases=["testhcdeath"])
