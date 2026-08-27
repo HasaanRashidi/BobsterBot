@@ -20,7 +20,15 @@ from hardcore.monitor import (
     parse_deaths_from_lines,
     read_new_log_lines,
 )
-from hardcore.service import format_death_announcement
+from hardcore.service import format_death_announcement, record_death
+
+from datetime import datetime, timezone
+from pathlib import Path
+from hardcore.state import load_state, save_state
+
+
+
+
 
 # loading RCON password
 OLD_RCON_PASSWORD = os.getenv("OLD_RCON_PASSWORD")
@@ -59,6 +67,11 @@ hardcore_server = HardcoreServerManager(HardcoreConfig.from_environment())
 HARDCORE_LOG_PATH = (
     hardcore_server.config.server_directory / "logs" / "latest.log"
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+HARDCORE_STATE_PATH = PROJECT_ROOT / "data" / "hardcore_state.json"
+hardcore_state = load_state(HARDCORE_STATE_PATH)
+
 
 hardcore_log_position = 0
 hardcore_log_initialized = False
@@ -108,19 +121,32 @@ async def monitor_hardcore_log():
     if not deaths:
         return
 
-    channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
-
-    if channel is None:
-        print("Could not find the Hardcore announcement channel.")
-        return
-
     for death in deaths:
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        record = record_death(
+            state=hardcore_state,
+            death=death,
+            timestamp=timestamp,
+        )
+
+        if record is None:
+            continue
+
+        save_state (HARDCORE_STATE_PATH, hardcore_state)
+
+        channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
+
+        if channel is None:
+            print("Could not find the Hardcore announcement channel.")
+            continue
+
         announcement = format_death_announcement(
-            run_number=6,
+            run_number=record.run_number,
             death=death,
         )
-        await channel.send(announcement)
 
+        await channel.send(announcement)
 
 
 # COMMANDS
