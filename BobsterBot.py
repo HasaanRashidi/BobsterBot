@@ -1,6 +1,6 @@
 # all the important import stuff (allows the bot to actually work)
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import subprocess
 import asyncio
 
@@ -10,7 +10,16 @@ import os
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-from hardcore.monitor import ParsedDeath
+#getting announcement channel ID
+HC_ANNOUNCEMENT_CHANNEL_ID = int(
+    os.getenv("HC_ANNOUNCEMENT_CHANNEL_ID", "0")
+)
+
+from hardcore.monitor import (
+    ParsedDeath,
+    parse_deaths_from_lines,
+    read_new_log_lines,
+)
 from hardcore.service import format_death_announcement
 
 # loading RCON password
@@ -47,6 +56,13 @@ bot = commands.Bot(command_prefix='-', intents=intents)
 # Separate manager for the temporary vanilla Hardcore server.
 hardcore_server = HardcoreServerManager(HardcoreConfig.from_environment())
 
+HARDCORE_LOG_PATH = (
+    hardcore_server.config.server_directory / "logs" / "latest.log"
+)
+
+hardcore_log_position = 0
+hardcore_log_initialized = False
+
 # bot starts as disarmed
 global armed
 armed = False
@@ -66,6 +82,44 @@ def is_server_online  (host="localhost", port=25565):
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
+
+    if not monitor_hardcore_log.is_running():
+        monitor_hardcore_log.start()
+        print(f"Watching Hardcore log: {HARDCORE_LOG_PATH}")
+
+@tasks.loop(seconds=2)
+async def monitor_hardcore_log():
+    global hardcore_log_position, hardcore_log_initialized
+
+    if not hardcore_log_initialized:
+        if HARDCORE_LOG_PATH.exists():
+            hardcore_log_position = HARDCORE_LOG_PATH.stat().st_size
+
+        hardcore_log_initialized = True
+        return
+    lines, hardcore_log_position = await asyncio.to_thread(
+        read_new_log_lines,
+        HARDCORE_LOG_PATH,
+        hardcore_log_position,
+    )
+
+    deaths = parse_deaths_from_lines(lines)
+
+    if not deaths:
+        return
+
+    channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
+
+    if channel is None:
+        print("Could not find the Hardcore announcement channel.")
+        return
+
+    for death in deaths:
+        announcement = format_death_announcement(
+            run_number=6,
+            death=death,
+        )
+        await channel.send(announcement)
 
 
 
