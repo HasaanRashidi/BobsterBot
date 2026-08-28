@@ -1,10 +1,10 @@
 # BobsterBot
 
-BobsterBot is a Discord bot that starts, stops, and monitors Minecraft servers through Discord commands.
+BobsterBot is a Discord bot that starts, stops, monitors, and manages Minecraft servers through Discord commands.
 
-The project began as a server manager for a private modded Minecraft server. It is now being extended with a separate vanilla Hardcore mode for tracking consecutive worlds, player deaths, and boss-kill progress.
+The project supports both the original modded Minecraft server and a separate vanilla Hardcore challenge with persistent runs, death tracking, world rotation, and boss-objective tracking.
 
-Bobster's personality and responses are based on inside jokes within our Minecraft group. A customizable, general-purpose message profile may be added later.
+Bobster's personality and responses are based on inside jokes within our Minecraft group.
 
 ## Current features
 
@@ -12,96 +12,101 @@ Bobster's personality and responses are based on inside jokes within our Minecra
 - Checks whether the original server is online
 - Lists connected players through RCON
 - Restricts server-management commands to authorized Discord users
-- Starts and safely stops a separate vanilla Hardcore server
+- Starts, stops, and resumes a separate vanilla Hardcore server
 - Preserves the Hardcore world between play sessions
-- Reports the Hardcore server's status in Discord
-- Keeps new Hardcore functionality in a separate Python module
+- Persists the current run number, status, death history, and boss progress
+- Detects player deaths from the Minecraft server log
+- Announces detected deaths in Discord
+- Prevents duplicate death records for the same run
+- Archives all three dimensions from a completed Hardcore run
+- Safely prepares the next Hardcore world
+- Automatically detects boss defeats from Minecraft player statistics
+- Announces boss defeats in Discord and inside Minecraft
+- Provides an authorized manual fallback command for boss defeats
+- Displays current boss progress through `-statusHC`
 - Loads private credentials and local paths from environment variables
+- Includes automated tests for state, monitoring, server control, world rotation, deaths, and bosses
 
-## Planned Hardcore features
+## Remaining work
 
-- Detect player deaths from the Minecraft server log
-- Record who died, the run number, timestamp, and cause of death
-- Include the original Minecraft death message in Discord announcements
-- Maintain a chronological death history
-- Show total deaths and causes for each player
-- Provide Discord commands for viewing death statistics
-- Archive dead worlds automatically
-- Generate a fresh Hardcore world after a confirmed death
-- Persist the current run number between bot restarts
-- Announce deaths and new runs in Discord
-- Track boss objectives for each run
-- Announce completed boss objectives in Discord
-- Prevent duplicate death and boss events after a restart
+- Add Discord commands for viewing detailed death history and player statistics
+- Perform final end-to-end validation with the disposable Hardcore test server
+- Continue improving error reporting and operational documentation
 
 ## Boss objectives
 
-The main challenge is to defeat all four of these bosses or major hostile objectives during one Hardcore run:
+The main challenge is to defeat all four objectives during one Hardcore run:
 
 - Ender Dragon
 - Wither
 - Warden
 - Elder Guardian
 
-Boss completion will eventually be persisted so progress is not lost when the Minecraft server or Discord bot is restarted.
+Boss completion is stored in the persistent Hardcore state, so progress survives Minecraft server and Discord bot restarts.
 
 ## Discord commands
+
+### Help
+
+| Command | Description |
+| --- | --- |
+| `-Bobster` | Displays the available commands and support contact |
 
 ### Original server
 
 | Command | Description |
 | --- | --- |
-| `-Bobster` | Displays Bobster's introduction |
 | `-status` | Checks the original server's status |
 | `-players` | Lists players connected to the original server |
-| `-arm` | Allows the original server to be started |
-| `-disarm` | Prevents the original server from being started |
 | `-start` | Starts the original server |
 | `-stop` | Safely stops the original server |
+| `-arm` | Allows others to start the original server |
+| `-disarm` | Prevents others from starting the original server |
 
 ### Hardcore server
 
 | Command | Description |
 | --- | --- |
+| `-statusHC` | Shows the run status, server connection, and boss progress |
 | `-startHC` | Starts or resumes the Hardcore server |
 | `-stopHC` | Saves and safely stops the Hardcore server |
-| `-statusHC` | Checks the Hardcore server's status |
+| `-nextHC` | Archives a dead run and prepares the next world |
+| `-bossHC <boss>` | Manually records a defeated boss as an authorized fallback |
 
-### Planned Hardcore commands
+The accepted boss names are `ender dragon`, `wither`, `warden`, and `elder guardian`.
 
-| Command | Planned description |
-| --- | --- |
-| `-HCdeaths` | Shows the number of recorded deaths for each player |
-| `-HCdeathlog` | Shows recent deaths, run numbers, and causes |
-| `-HCstats <player>` | Shows detailed death statistics for one player |
-| `-HCbosses` | Shows boss progress for the current run |
-| `-HCrun` | Shows the current run number and status |
+The Hardcore start, stop, world-rotation, and manual boss commands are restricted to authorized Discord users.
 
-Planned command names may change during development.
+## Help and support
 
-## Death tracking design
+For questions, problems, or help using BobsterBot, contact **krezn1k** on Discord.
 
-Each detected death will be stored as a structured event containing information such as:
+## Death tracking
+
+While a Hardcore run is active, BobsterBot monitors the Minecraft server log for player-death messages.
+
+The first detected death in a run is stored as a structured record:
 
 ```json
 {
   "run_number": 6,
   "player": "PlayerName",
   "cause": "creeper",
-  "minecraft_message": "PlayerName was blown up by Creeper",
-  "timestamp": "2026-08-25T21:30:00"
+  "message": "PlayerName was blown up by Creeper",
+  "timestamp": "2026-08-25T21:30:00+00:00"
 }
 ```
 
-Individual death records will be the source of truth. Player totals and cause statistics will be calculated from those records, preventing separate counters from becoming inconsistent.
-
-A future Discord announcement may look like:
+Recording a death changes the run status to `DEAD`, saves the persistent state, and sends a Discord announcement:
 
 ```text
 💀 Run 6 has ended!
 PlayerName was blown up by Creeper.
-This is PlayerName's third recorded death.
 ```
+
+Only one death is recorded per run, preventing duplicate log events or bot restarts from creating repeated records.
+
+Individual death records are the source of truth. Future player totals and cause statistics will be calculated from these records rather than stored as separate counters.
 
 ## Project structure
 
@@ -110,6 +115,7 @@ BobsterBot/
 ├── BobsterBot.py          # Discord commands and original bot
 ├── hardcore/              # New Hardcore functionality
 │   ├── __init__.py
+│   ├── bosses.py          # Reads boss progress from player statistics
 │   ├── config.py          # Hardcore server configuration
 │   ├── server.py          # Server process management
 │   ├── state.py           # Persistent run and event state
@@ -124,7 +130,7 @@ BobsterBot/
 └── README.md              # Project documentation
 ```
 
-Some planned module files currently exist as placeholders and will be implemented incrementally.
+The Hardcore package separates configuration, process control, log parsing, persistent state, boss detection, world rotation, and service logic into focused modules.
 
 ## Requirements
 
@@ -186,7 +192,13 @@ Example settings are documented in `.env.example`, including:
 - `OLD_RCON_PASSWORD`
 - `OLD_JAVA_EXECUTABLE`
 - `OLD_SERVER_DIRECTORY`
-- Optional Hardcore server settings
+- `HC_SERVER_DIRECTORY`
+- `HC_JAVA_EXECUTABLE`
+- `HC_SERVER_PORT`
+- `HC_MIN_MEMORY`
+- `HC_MAX_MEMORY`
+- `HC_ANNOUNCEMENT_CHANNEL_ID`
+- `HC_ARCHIVE_DIRECTORY`
 
 Multiple authorized Discord user IDs can be separated with commas:
 
@@ -202,19 +214,22 @@ Stopping the Hardcore server does not delete or reset the world.
 
 The `-stopHC` command asks Minecraft to save all world and player data before stopping. Running `-startHC` later loads the same world, allowing the group to continue on another day.
 
-World replacement will only happen after a confirmed player death once automatic run management is implemented.
+After a run is marked `DEAD` and the server is offline, an authorized user can run `-nextHC`. The command archives `world`, `world_nether`, and `world_the_end` in the configured archive directory before preparing the next run. It refuses to continue if a required dimension is missing or the destination archive already exists.
 
 ## Testing strategy
 
-New features should not be tested against the active Hardcore world.
+Automated tests use temporary directories, sample Minecraft log messages, mock server processes, and temporary player-stat files. The suite covers:
 
-The planned testing approach includes:
+- Persistent Hardcore state
+- Death-message parsing and duplicate prevention
+- Death and boss announcement formatting
+- Server monitoring and command input
+- Boss-stat detection and malformed files
+- Boss validation and duplicate prevention
+- Three-dimension world archival
+- Safety guards for active, incomplete, or conflicting runs
 
-- Unit tests using temporary directories
-- Sample Minecraft log messages
-- A disposable test server on a different port
-- Backups before testing world-management features
-- Tests for duplicate events and interrupted restarts
+The active Hardcore world is not used for automated testing. Final live validation should use a disposable server or carefully controlled test run.
 
 The live world and archived worlds remain outside version control.
 
@@ -238,7 +253,9 @@ Only safe examples and source code should be committed.
 
 BobsterBot is under active development.
 
-Basic Discord control of both the original server and vanilla Hardcore server is working. Automated death detection, persistent statistics, world rotation, Discord death announcements, and boss tracking are the next major development stages.
+The core Hardcore workflow is implemented: server control, persistent run state, automatic death detection, Discord death announcements, safe world rotation, automatic boss detection, Minecraft and Discord boss announcements, boss-progress reporting, and a manual boss fallback command.
+
+Remaining work primarily consists of detailed death-statistics commands, final disposable-server validation, and operational polish.
 
 ## License
 

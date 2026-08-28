@@ -239,19 +239,34 @@ async def monitor_hardcore_bosses():
 
 # COMMANDS
 
-# simple greeting command that displays commands
+# Displays the bot's available commands.
 @bot.command()
 async def Bobster(ctx):
-    await ctx.send ("Hello! I'm Bobster Bot! My commands are as follows:" \
-    "\n```-status --> Returns the status of the server (Online/Offline)"
-    "\n-start --> Turns on the server"
-    "\n-stop --> Stops the server" \
-    "\n-players --> Shows the number of players online and their usernames"
-    "\n~~~~~~~~~~~~"
-    "\nThe following are commands for authorized users"
-    "\n-arm --> Arms the bot and allows others to turn on the server"
-    "\n-disarm --> Disarms me and bars others from turning the server on```")
+    await ctx.send(
+        "Hello! I'm Bobster Bot! My commands are:\n"
+        "```text\n"
+        "GENERAL SERVER\n"
+        "-status   Check whether the server is online\n"
+        "-start    Start the server\n"
+        "-stop     Stop the server\n"
+        "-players  Show the online players\n"
+        "\n"
+        "HARDCORE SERVER\n"
+        "-statusHC        Show run status and boss progress\n"
+        "-startHC         Start or resume the Hardcore server\n"
+        "-stopHC          Save and stop the Hardcore server\n"
+        "-nextHC          Archive a dead run and prepare the next run\n"
+        "-bossHC <boss>   Manually record a defeated boss\n"
+        "\n"
+        "AUTHORIZED CONTROL\n"
+        "-arm      Allow others to start the original server\n"
+        "-disarm   Prevent others from starting the original server\n"
+        "```\n"
+        "Questions, problems, or need help? "
+        "Contact **krezn1k** on Discord."
+    )
 
+    
 # checks status of server
 @bot.command()
 async def status(ctx):
