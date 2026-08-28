@@ -29,9 +29,25 @@ def archive_worlds(
             )
 
     archive_path.mkdir(parents=True)
+    moved_paths = []
 
-    for source_path in source_paths:
-        destination_path = archive_path / source_path.name
-        shutil.move(str(source_path), str(destination_path))
+    try:
+        for source_path in source_paths:
+            destination_path = archive_path / source_path.name
+            shutil.move(str(source_path), str(destination_path))
+            moved_paths.append((source_path, destination_path))
+
+    except Exception:
+        for source_path, destination_path in reversed(moved_paths):
+            if destination_path.exists() and not source_path.exists():
+                shutil.move(
+                    str(destination_path),
+                    str(source_path),
+                )
+
+        if archive_path.exists():
+            shutil.rmtree(archive_path)
+
+        raise
 
     return archive_path

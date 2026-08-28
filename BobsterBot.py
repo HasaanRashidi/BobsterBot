@@ -180,8 +180,13 @@ async def monitor_hardcore_log():
             death=death,
         )
 
-        await channel.send(announcement)
-
+        try:
+            await channel.send(announcement)
+        except discord.DiscordException as error:
+            print(
+                "Could not announce the Hardcore death in Discord: "
+                f"{error}"
+            )
 
 @tasks.loop(seconds=5)
 async def monitor_hardcore_bosses():
@@ -217,9 +222,15 @@ async def monitor_hardcore_bosses():
         channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
 
         if channel is not None:
-            await channel.send(announcement)
+            try:
+                await channel.send(announcement)
+            except discord.DiscordException as error:
+                print(
+                    "Could not announce the Hardcore boss in Discord: "
+                    f"{error}"
+                )
         else:
-            print ("Could not find the Hardcore announcement channel.")
+            print("Could not find the Hardcore announcement channel.")
 
         minecraft_message = json.dumps(
             {
@@ -336,7 +347,7 @@ async def start(ctx):
             [
                 OLD_JAVA_EXECUTABLE,
                 "@user_jvm_args.txt",
-                "@libraries/net/neoforged/neoforge/21.1.194\win_args.txt"
+                "@libraries/net/neoforged/neoforge/21.1.194/win_args.txt"
             ],
             cwd=OLD_SERVER_DIRECTORY,
             stdin=subprocess.PIPE,

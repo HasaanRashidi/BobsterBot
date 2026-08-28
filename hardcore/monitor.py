@@ -46,6 +46,11 @@ def parse_death_message(log_line: str) -> ParsedDeath | None:
 
 FIXED_CAUSE_DEATH_SUFFIXES = (
     (" fell from a high place", "fall"),
+    (" drowned", "drowning"),
+    (" burned to death", "fire"),
+    (" tried to swim in lava", "lava"),
+    (" hit the ground too hard", "fall"),
+    (" suffocated in a wall", "suffocation"),
 )
 
 def parse_deaths_from_lines(lines: list[str]) -> list[ParsedDeath]:
@@ -61,21 +66,27 @@ def parse_deaths_from_lines(lines: list[str]) -> list[ParsedDeath]:
 
 
 def read_new_log_lines(
-        log_path: Path,
-        position: int,
+    log_path: Path,
+    position: int,
 ) -> tuple[list[str], int]:
-    if not log_path.exists():
-        return [], position
+    original_position = position
 
-    with log_path.open("r", encoding="utf-8") as file:
-        file.seek(0, 2)
-        end_position = file.tell()
+    try:
+        if not log_path.exists():
+            return [], position
 
-        if position > end_position:
-            position = 0
+        with log_path.open("r", encoding="utf-8") as file:
+            file.seek(0, 2)
+            end_position = file.tell()
 
-        file.seek(position)
-        lines = file.readlines()
-        new_position = file.tell()
+            if position > end_position:
+                position = 0
+
+            file.seek(position)
+            lines = file.readlines()
+            new_position = file.tell()
+
+    except OSError:
+        return [], original_position
 
     return lines, new_position

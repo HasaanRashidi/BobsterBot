@@ -95,6 +95,8 @@ def record_death(
         death: ParsedDeath,
         timestamp: str
 ) -> DeathRecord | None:
+    if state.status != "RUNNING":
+        return None
     already_recorded = any(
         existing_death.run_number == state.run_number
         for existing_death in state.deaths

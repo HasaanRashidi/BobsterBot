@@ -69,3 +69,21 @@ def test_parse_deaths_from_lines_only_returns_deaths():
     ]
 
     assert deaths == expected
+
+
+def test_read_new_log_lines_handles_temporary_read_error(
+    tmp_path,
+    monkeypatch,
+):
+    log_path = tmp_path / "latest.log"
+    log_path.write_text("existing line\n", encoding="utf-8")
+
+    def fail_to_open(*args, **kwargs):
+        raise PermissionError("The log is temporarily locked.")
+
+    monkeypatch.setattr(type(log_path), "open", fail_to_open)
+
+    lines, position = read_new_log_lines(log_path, 10)
+
+    assert lines == []
+    assert position == 10

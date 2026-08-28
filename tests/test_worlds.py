@@ -1,5 +1,6 @@
 from hardcore.worlds import archive_worlds
 import pytest
+import shutil
 
 
 
@@ -76,4 +77,52 @@ def test_archive_worlds_refuses_missing_dimension(tmp_path):
 
     assert (server_directory / "world").exists()
     assert (server_directory / "world_nether").exists()
+    assert not (archive_directory / "run-006").exists()
+
+
+def test_archive_worlds_rolls_back_partial_move(
+    tmp_path,
+    monkeypatch,
+):
+    server_directory = tmp_path / "server"
+    archive_directory = tmp_path / "archives"
+    server_directory.mkdir()
+
+    world_names = ("world", "world_nether", "world_the_end")
+
+    for world_name in world_names:
+        world_path = server_directory / world_name
+        world_path.mkdir()
+        (world_path / "marker.txt").write_text(
+            world_name,
+            encoding="utf-8",
+        )
+
+    real_move = shutil.move
+    move_count = 0
+
+    def fail_second_move(source, destination):
+        nonlocal move_count
+        move_count += 1
+
+        if move_count == 2:
+            raise OSError("Simulated archive failure.")
+
+        return real_move(source, destination)
+
+    monkeypatch.setattr(
+        "hardcore.worlds.shutil.move",
+        fail_second_move,
+    )
+
+    with pytest.raises(OSError):
+        archive_worlds(
+            server_directory=server_directory,
+            archive_directory=archive_directory,
+            run_number=6,
+        )
+
+    for world_name in world_names:
+        assert (server_directory / world_name).is_dir()
+
     assert not (archive_directory / "run-006").exists()

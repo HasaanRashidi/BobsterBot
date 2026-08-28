@@ -296,3 +296,25 @@ def test_format_player_death_stats_handles_unknown_player():
     result = format_player_death_stats(state, "Herobrine")
 
     assert result == "No Hardcore deaths found for Herobrine."
+
+
+def test_record_death_refuses_inactive_run():
+    state = HardcoreState(
+        run_number=6,
+        status="STOPPED",
+    )
+    death = ParsedDeath(
+        player="TestPlayer",
+        cause="drowning",
+        message="TestPlayer drowned",
+    )
+
+    result = record_death(
+        state=state,
+        death=death,
+        timestamp="2026-01-01T12:00:00Z",
+    )
+
+    assert result is None
+    assert state.deaths == []
+    assert state.status == "STOPPED"

@@ -1,4 +1,5 @@
 from hardcore.monitor import ParsedDeath, parse_death_message
+import pytest
 
 
 def test_parse_creeper_death():
@@ -77,3 +78,43 @@ def test_parse_zombie_death():
     )
 
     assert result == expected
+
+
+def test_parse_drowning_death():
+    line = (
+        "[12:00:00] [Server thread/INFO]: "
+        "TestPlayer drowned"
+    )
+
+    death = parse_death_message(line)
+
+    expected = ParsedDeath(
+        player="TestPlayer",
+        cause="drowning",
+        message="TestPlayer drowned",
+    )
+
+    assert death == expected
+
+
+@pytest.mark.parametrize(
+    ("message", "cause"),
+    [
+        ("TestPlayer burned to death", "fire"),
+        ("TestPlayer tried to swim in lava", "lava"),
+        ("TestPlayer hit the ground too hard", "fall"),
+        ("TestPlayer suffocated in a wall", "suffocation"),
+    ],
+)
+def test_parse_environmental_deaths(message, cause):
+    line = f"[12:00:00] [Server thread/INFO]: {message}"
+
+    death = parse_death_message(line)
+
+    expected = ParsedDeath(
+        player="TestPlayer",
+        cause=cause,
+        message=message,
+    )
+
+    assert death == expected
