@@ -1,5 +1,5 @@
 from hardcore.monitor import ParsedDeath
-from hardcore.service import record_death, prepare_next_run
+from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement
 from hardcore.state import HardcoreState, DeathRecord
 
 
@@ -65,3 +65,69 @@ def test_prepare_next_run_refuses_active_run():
     assert result is False
     assert state.run_number == 6
     assert state.status == "RUNNING"
+
+
+def test_record_boss_defeat_marks_boss_complete():
+    state = HardcoreState(run_number=6, status="RUNNING")
+
+    result = record_boss_defeat(
+        state=state,
+        boss_name="ender_dragon",
+    )
+
+    assert result is True
+    assert state.bosses["ender_dragon"] is True
+
+
+def test_record_boss_defeat_only_records_once():
+    state = HardcoreState(run_number=6, status="RUNNING")
+
+    first_result = record_boss_defeat(
+        state=state,
+        boss_name="ender_dragon",
+    )
+
+    second_result = record_boss_defeat(
+        state=state,
+        boss_name="ender_dragon",
+    )
+
+    assert first_result is True
+    assert second_result is False
+    assert state.bosses["ender_dragon"] is True
+
+
+def test_record_boss_defeat_refuses_inactive_run():
+    state = HardcoreState(run_number=6, status="STOPPED")
+
+    result = record_boss_defeat(
+        state=state,
+        boss_name="ender_dragon",
+    )
+
+    assert result is False
+    assert state.bosses["ender_dragon"] is False
+
+
+def test_record_boss_defeat_rejects_unknown_boss():
+    state = HardcoreState(run_number=6, status="RUNNING")
+
+    result = record_boss_defeat(
+        state=state,
+        boss_name="herobrine"
+    )
+
+    assert result is False
+    assert "herobrine" not in state.bosses
+
+
+def test_format_boss_announcement_includes_progress():
+    state = HardcoreState(run_number=6, status="RUNNING")
+    state.bosses["ender_dragon"] = True
+
+    result = format_boss_announcement(
+        state=state,
+        boss_name="ender_dragon",
+    )
+
+    assert result == "Ender Dragon slain (1/4)"

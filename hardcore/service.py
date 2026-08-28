@@ -40,6 +40,37 @@ def record_death(
     return record
 
 
+def format_boss_announcement(
+        state: HardcoreState,
+        boss_name: str,
+) -> str:
+    display_name = boss_name.replace("_", " ").title()
+    defeated_count = sum(state.bosses.values())
+    total_bosses = len(state.bosses)
+
+    return (
+        f"{display_name} slain "
+        f"({defeated_count}/{total_bosses})"
+    )
+
+
+def record_boss_defeat(
+        state: HardcoreState,
+        boss_name: str,
+) -> bool:
+    if state.status != "RUNNING":
+        return False
+
+    if boss_name not in state.bosses:
+        return False
+    
+    if state.bosses[boss_name]:
+        return False
+    
+    state.bosses[boss_name] = True
+    return True
+
+
 def prepare_next_run(state: HardcoreState) -> bool:
     if state.status != "DEAD":
         return False

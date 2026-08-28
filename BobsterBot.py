@@ -20,13 +20,23 @@ from hardcore.monitor import (
     parse_deaths_from_lines,
     read_new_log_lines,
 )
-from hardcore.service import format_death_announcement, record_death, prepare_next_run
+from hardcore.service import (
+    format_boss_announcement,
+    format_death_announcement,
+    prepare_next_run,
+    record_boss_defeat,
+    record_death,
+)
 
 from hardcore.worlds import archive_worlds
 
 from datetime import datetime, timezone
 from pathlib import Path
 from hardcore.state import load_state, save_state
+
+import json
+
+from hardcore.bosses import read_defeated_bosses
 
 
 
@@ -74,6 +84,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 HARDCORE_STATE_PATH = PROJECT_ROOT / "data" / "hardcore_state.json"
 hardcore_state = load_state(HARDCORE_STATE_PATH)
 
+HARDCORE_STATS_PATH = (
+    hardcore_server.config.server_directory
+    / hardcore_state.world_folder
+    / "stats"
+)
+
 HC_ARCHIVE_DIRECTORY_TEXT = os.getenv("HC_ARCHIVE_DIRECTORY")
 HC_ARCHIVE_DIRECTORY = (
     Path(HC_ARCHIVE_DIRECTORY_TEXT)
@@ -108,6 +124,10 @@ async def on_ready():
     if not monitor_hardcore_log.is_running():
         monitor_hardcore_log.start()
         print(f"Watching Hardcore log: {HARDCORE_LOG_PATH}")
+
+    if not monitor_hardcore_bosses.is_running():
+        monitor_hardcore_bosses.start()
+        print(f"Watching Hardcore stats: {HARDCORE_STATS_PATH}")
 
 @tasks.loop(seconds=2)
 async def monitor_hardcore_log():
@@ -157,6 +177,63 @@ async def monitor_hardcore_log():
 
         await channel.send(announcement)
 
+
+@tasks.loop(seconds=5)
+async def monitor_hardcore_bosses():
+    if hardcore_state.status != "RUNNING":
+        return
+
+    detected_bosses = await asyncio.to_thread(
+        read_defeated_bosses,
+        HARDCORE_STATS_PATH,
+    )
+
+    for boss_name in hardcore_state.bosses:
+        if boss_name not in detected_bosses:
+            continue
+
+        recorded = record_boss_defeat(
+            state=hardcore_state,
+            boss_name=boss_name,
+        )
+
+        if not recorded:
+            continue
+
+        save_state(HARDCORE_STATE_PATH, hardcore_state)
+
+        announcement = format_boss_announcement(
+            state=hardcore_state,
+            boss_name=boss_name,
+        )
+
+        print(f"Detected Hardcore boss: {announcement}")
+
+        channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
+
+        if channel is not None:
+            await channel.send(announcement)
+        else:
+            print ("Could not find the Hardcore announcement channel.")
+
+        minecraft_message = json.dumps(
+            {
+                "text": announcement,
+                "color": "gold",
+                "bold": True,
+            }
+        )
+
+        try:
+            await asyncio.to_thread(
+                hardcore_server.send_command,
+                f"tellraw @a {minecraft_message}",
+            )
+        except RuntimeError as error:
+            print(
+                "Could not announce the boss in Minecraft: "
+                f"{error}"
+            )
 
 # COMMANDS
 
