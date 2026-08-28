@@ -82,6 +82,26 @@ class HardcoreServerManager:
             time.sleep(1)
         return False
 
+    def send_command(self, command: str) -> None:
+        with self._lock:
+            if not self.is_process_running():
+                raise RuntimeError(
+                    "The Hardcore server is not running."
+                )
+
+            assert self._process is not None
+
+            stdin = self._process.stdin
+
+            if stdin is None:
+                raise RuntimeError(
+                    "The Hardcore server console is unavailable."
+                )
+
+            stdin.write(f"{command}\n")
+            stdin.flush()
+
+
     def stop(self, timeout: float = 60.0) -> None:
         with self._lock:
             if not self.is_process_running():
