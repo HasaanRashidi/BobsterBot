@@ -27,6 +27,7 @@ from hardcore.service import (
     record_boss_defeat,
     record_death,
     format_boss_progress,
+    normalize_boss_name,
 )
 
 from hardcore.worlds import archive_worlds
@@ -418,6 +419,85 @@ async def status_hardcore(ctx):
         f"Server connection: {server_status}\n\n"
         f"{boss_progress}"
     )
+
+
+@bot.command(name="bossHC", aliases=["bosshc"])
+async def boss_hardcore(ctx, *, boss_name: str = ""):
+    if ctx.author.id not in AUTHORIZED_USERS:
+        await ctx.send(
+            "❌ You are not authorized to record a Hardcore boss."
+        )
+        return
+
+    if not boss_name.strip():
+        await ctx.send("❌ Usage: `-bossHC ender dragon`")
+        return
+
+    normalized_name = normalize_boss_name(boss_name)
+
+    if normalized_name not in hardcore_state.bosses:
+        valid_bosses = ", ".join(
+            name.replace("_", " ").title()
+            for name in hardcore_state.bosses
+        )
+        await ctx.send(
+            f"❌ Unknown boss. Choose from: {valid_bosses}."
+        )
+        return
+    if hardcore_state.status != "RUNNING":
+        await ctx.send(
+            "❌ Bosses can only be recorded during an active Hardcore run."
+        )
+        return
+
+    if hardcore_state.bosses[normalized_name]:
+        display_name = normalized_name.replace("_", " ").title()
+        await ctx.send(f"❌ {display_name} has already been recorded.")
+        return
+
+    recorded = record_boss_defeat(
+        state=hardcore_state,
+        boss_name=normalized_name,
+    )
+
+    if not recorded:
+        await ctx.send("❌ Could not record that boss.")
+        return
+
+    save_state(HARDCORE_STATE_PATH, hardcore_state)
+
+    announcement = format_boss_announcement(
+        state=hardcore_state,
+        boss_name=normalized_name,
+    )
+
+    channel = bot.get_channel(HC_ANNOUNCEMENT_CHANNEL_ID)
+
+    if channel is not None:
+        await channel.send(announcement)
+    else:
+        await ctx.send(
+            "⚠ Boss recorded, but the announcement channel was not found."
+        )
+
+    minecraft_message = json.dumps(
+        {
+            "text": announcement,
+            "color": "gold",
+            "bold": True,
+        }
+    )
+
+    try:
+        await asyncio.to_thread(
+            hardcore_server.send_command,
+            f"tellraw @a {minecraft_message}",
+        )
+    except RuntimeError as error:
+        await ctx.send(
+            "⚠ Boss recorded, but the Minecraft announcement failed: "
+            f"{error}"
+        )
 
 
 @bot.command(name="nextHC", aliases=["nexthc"])

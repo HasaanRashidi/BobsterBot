@@ -1,5 +1,5 @@
 from hardcore.monitor import ParsedDeath
-from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement, format_boss_progress
+from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement, format_boss_progress, normalize_boss_name
 from hardcore.state import HardcoreState, DeathRecord
 
 
@@ -146,3 +146,9 @@ def test_format_boss_progress_lists_all_bosses():
         "⬜ Warden\n"
         "⬜ Elder Guardian"
     )
+
+
+def test_normalize_boss_name_accepts_display_name():
+    result = normalize_boss_name("  Ender Dragon  ")
+
+    assert result == "ender_dragon"

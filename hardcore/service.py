@@ -40,6 +40,12 @@ def record_death(
     return record
 
 
+def normalize_boss_name(boss_name: str) -> str:
+    cleaned_name = boss_name.strip().lower().replace("-", " ")
+
+    return "_".join(cleaned_name.split())
+
+
 def format_boss_announcement(
         state: HardcoreState,
         boss_name: str,
