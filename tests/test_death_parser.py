@@ -80,6 +80,19 @@ def test_parse_zombie_death():
     assert result == expected
 
 
+def test_ignore_villager_entity_death():
+    log_line = (
+        "[21:30:00] [Server thread/INFO]: "
+        "Villager Villager['Villager'/154, l='ServerLevel[world]', "
+        "x=47.25, y=48.00, z=-152.01] died, message: "
+        "'Villager was slain by Zombie'"
+    )
+
+    result = parse_death_message(log_line)
+
+    assert result is None
+
+
 def test_parse_drowning_death():
     line = (
         "[12:00:00] [Server thread/INFO]: "

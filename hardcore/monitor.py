@@ -1,5 +1,7 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
+
 
 @dataclass(frozen=True)
 class ParsedDeath:
@@ -13,6 +15,13 @@ KILLER_DEATH_PHRASES = (
     " was slain by ",
 )
 
+PLAYER_NAME_PATTERN = re.compile(r"[A-Za-z0-9_]{1,16}")
+
+
+def is_valid_player_name(player_name: str) -> bool:
+    return PLAYER_NAME_PATTERN.fullmatch(player_name) is not None
+
+
 def parse_death_message(log_line: str) -> ParsedDeath | None:
 
     prefix, separator, message = log_line.partition("]: ")
@@ -25,7 +34,7 @@ def parse_death_message(log_line: str) -> ParsedDeath | None:
     for death_phrase in KILLER_DEATH_PHRASES:
         player, death_separator, killer = message.partition(death_phrase)
 
-        if death_separator:
+        if death_separator and is_valid_player_name(player):
             return ParsedDeath(
                 player=player,
                 cause=killer.lower(),
@@ -35,6 +44,9 @@ def parse_death_message(log_line: str) -> ParsedDeath | None:
     for death_suffix, cause in FIXED_CAUSE_DEATH_SUFFIXES:
         if message.endswith(death_suffix):
             player = message.removesuffix(death_suffix)
+
+            if not is_valid_player_name(player):
+                continue
 
             return ParsedDeath(
                 player=player,
