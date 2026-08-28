@@ -4,7 +4,8 @@ import shutil
 
 
 
-WORLD_FOLDERS = ("world", "world_nether", "world_the_end")
+PRIMARY_WORLD_FOLDER = "world"
+SPLIT_DIMENSION_FOLDERS = ("world_nether", "world_the_end")
 
 
 def archive_worlds(
@@ -17,16 +18,39 @@ def archive_worlds(
     if archive_path.exists():
         raise FileExistsError(f"Archive already exists: {archive_path}")
 
-    source_paths = [
-        server_directory / world_name
-        for world_name in WORLD_FOLDERS
+    primary_world_path = server_directory / PRIMARY_WORLD_FOLDER
+
+    if not primary_world_path.is_dir():
+        raise FileNotFoundError(
+            f"Missing world folder: {primary_world_path}"
+        )
+
+    split_dimension_paths = [
+        server_directory / folder_name
+        for folder_name in SPLIT_DIMENSION_FOLDERS
+    ]
+    split_dimensions_present = [
+        path.is_dir()
+        for path in split_dimension_paths
     ]
 
-    for source_path in source_paths:
-        if not source_path.is_dir():
-            raise FileNotFoundError(
-                f"Missing world folder: {source_path}"
+    if any(split_dimensions_present) and not all(split_dimensions_present):
+        missing_path = next(
+            path
+            for path, is_present in zip(
+                split_dimension_paths,
+                split_dimensions_present,
             )
+            if not is_present
+        )
+        raise FileNotFoundError(
+            f"Missing world folder: {missing_path}"
+        )
+
+    source_paths = [primary_world_path]
+
+    if all(split_dimensions_present):
+        source_paths.extend(split_dimension_paths)
 
     archive_path.mkdir(parents=True)
     moved_paths = []

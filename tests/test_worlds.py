@@ -126,3 +126,36 @@ def test_archive_worlds_rolls_back_partial_move(
         assert (server_directory / world_name).is_dir()
 
     assert not (archive_directory / "run-006").exists()
+
+
+def test_archive_worlds_supports_vanilla_layout(tmp_path):
+    server_directory = tmp_path / "server"
+    archive_directory = tmp_path / "archives"
+
+    dimensions_directory = (
+        server_directory
+        / "world"
+        / "dimensions"
+        / "minecraft"
+        / "the_nether"
+    )
+    dimensions_directory.mkdir(parents=True)
+
+    marker_path = dimensions_directory / "marker.txt"
+    marker_path.write_text("vanilla dimension", encoding="utf-8")
+
+    archive_path = archive_worlds(
+        server_directory=server_directory,
+        archive_directory=archive_directory,
+        run_number=1,
+    )
+
+    assert not (server_directory / "world").exists()
+    assert (
+        archive_path
+        / "world"
+        / "dimensions"
+        / "minecraft"
+        / "the_nether"
+        / "marker.txt"
+    ).read_text(encoding="utf-8") == "vanilla dimension"
