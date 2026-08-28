@@ -54,6 +54,22 @@ def format_boss_announcement(
     )
 
 
+def format_boss_progress(state: HardcoreState) -> str:
+    defeated_count = sum(state.bosses.values())
+    total_bosses = len(state.bosses)
+
+    lines = [
+        f"Boss progress: {defeated_count}/{total_bosses}"
+    ]
+
+    for boss_name, defeated in state.bosses.items():
+        marker = "✅" if defeated else "⬜"
+        display_name = boss_name.replace("_", " ").title()
+        lines.append(f"{marker} {display_name}")
+
+    return "\n".join(lines)
+
+
 def record_boss_defeat(
         state: HardcoreState,
         boss_name: str,

@@ -1,5 +1,5 @@
 from hardcore.monitor import ParsedDeath
-from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement
+from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement, format_boss_progress
 from hardcore.state import HardcoreState, DeathRecord
 
 
@@ -131,3 +131,18 @@ def test_format_boss_announcement_includes_progress():
     )
 
     assert result == "Ender Dragon slain (1/4)"
+
+
+def test_format_boss_progress_lists_all_bosses():
+    state = HardcoreState(run_number=6, status="RUNNING")
+    state.bosses["ender_dragon"] = True
+
+    result = format_boss_progress(state)
+
+    assert result == (
+        "Boss progress: 1/4\n"
+        "✅ Ender Dragon\n"
+        "⬜ Wither\n"
+        "⬜ Warden\n"
+        "⬜ Elder Guardian"
+    )

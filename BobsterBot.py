@@ -26,6 +26,7 @@ from hardcore.service import (
     prepare_next_run,
     record_boss_defeat,
     record_death,
+    format_boss_progress,
 )
 
 from hardcore.worlds import archive_worlds
@@ -409,10 +410,13 @@ async def status_hardcore(ctx):
     else:
         server_status = "🔴 OFFLINE"
 
+    boss_progress = format_boss_progress(hardcore_state)
+
     await ctx.send(
         f"🏰 Hardcore Run {hardcore_state.run_number}\n"
         f"Challenge status: {hardcore_state.status}\n"
-        f"Server connection: {server_status}"
+        f"Server connection: {server_status}\n\n"
+        f"{boss_progress}"
     )
 
 
