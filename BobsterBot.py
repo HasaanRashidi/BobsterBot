@@ -28,6 +28,9 @@ from hardcore.service import (
     record_death,
     format_boss_progress,
     normalize_boss_name,
+    format_death_totals,
+    format_death_log,
+    format_player_death_stats,
 )
 
 from hardcore.worlds import archive_worlds
@@ -252,11 +255,14 @@ async def Bobster(ctx):
         "-players  Show the online players\n"
         "\n"
         "HARDCORE SERVER\n"
-        "-statusHC        Show run status and boss progress\n"
-        "-startHC         Start or resume the Hardcore server\n"
-        "-stopHC          Save and stop the Hardcore server\n"
-        "-nextHC          Archive a dead run and prepare the next run\n"
-        "-bossHC <boss>   Manually record a defeated boss\n"
+        "-statusHC          Show run status and boss progress\n"
+        "-startHC           Start or resume the Hardcore server\n"
+        "-stopHC            Save and stop the Hardcore server\n"
+        "-nextHC            Archive a dead run and prepare the next run\n"
+        "-bossHC <boss>     Manually record a defeated boss\n"
+        "-HCdeaths          Show death totals for every player\n"
+        "-HCdeathlog        Show the five most recent deaths\n"
+        "-HCstats <player>  Show detailed stats for one player\n"
         "\n"
         "AUTHORIZED CONTROL\n"
         "-arm      Allow others to start the original server\n"
@@ -266,7 +272,7 @@ async def Bobster(ctx):
         "Contact **krezn1k** on Discord."
     )
 
-    
+
 # checks status of server
 @bot.command()
 async def status(ctx):
@@ -434,6 +440,34 @@ async def status_hardcore(ctx):
         f"Server connection: {server_status}\n\n"
         f"{boss_progress}"
     )
+
+
+@bot.command(name="HCdeaths", aliases=["hcdeaths"])
+async def hardcore_death_totals(ctx):
+    death_totals = format_death_totals(hardcore_state)
+
+    await ctx.send(death_totals)
+
+
+@bot.command(name="HCdeathlog", aliases=["hcdeathlog"])
+async def hardcore_death_log(ctx):
+    death_log = format_death_log(hardcore_state)
+
+    await ctx.send(death_log)
+
+
+@bot.command(name="HCstats", aliases=["hcstats"])
+async def hardcore_player_stats(ctx, *, player_name: str = ""):
+    if not player_name.strip():
+        await ctx.send("❌ Usage: `-HCstats <player>`")
+        return
+
+    player_stats = format_player_death_stats(
+        state=hardcore_state,
+        player_name=player_name,
+    )
+
+    await ctx.send(player_stats)
 
 
 @bot.command(name="bossHC", aliases=["bosshc"])

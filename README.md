@@ -26,10 +26,10 @@ Bobster's personality and responses are based on inside jokes within our Minecra
 - Displays current boss progress through `-statusHC`
 - Loads private credentials and local paths from environment variables
 - Includes automated tests for state, monitoring, server control, world rotation, deaths, and bosses
+- Provides overall death totals, recent death history, and per-player cause statistics
 
 ## Remaining work
 
-- Add Discord commands for viewing detailed death history and player statistics
 - Perform final end-to-end validation with the disposable Hardcore test server
 - Continue improving error reporting and operational documentation
 
@@ -72,6 +72,9 @@ Boss completion is stored in the persistent Hardcore state, so progress survives
 | `-stopHC` | Saves and safely stops the Hardcore server |
 | `-nextHC` | Archives a dead run and prepares the next world |
 | `-bossHC <boss>` | Manually records a defeated boss as an authorized fallback |
+| `-HCdeaths` | Shows total recorded deaths for each player |
+| `-HCdeathlog` | Shows the five most recent Hardcore deaths |
+| `-HCstats <player>` | Shows one player's death total and causes |
 
 The accepted boss names are `ender dragon`, `wither`, `warden`, and `elder guardian`.
 
@@ -255,7 +258,7 @@ BobsterBot is under active development.
 
 The core Hardcore workflow is implemented: server control, persistent run state, automatic death detection, Discord death announcements, safe world rotation, automatic boss detection, Minecraft and Discord boss announcements, boss-progress reporting, and a manual boss fallback command.
 
-Remaining work primarily consists of detailed death-statistics commands, final disposable-server validation, and operational polish.
+Remaining work primarily consists of final disposable-server validation and operational polish.
 
 ## License
 

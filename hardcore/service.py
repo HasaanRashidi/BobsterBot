@@ -1,5 +1,6 @@
 from hardcore.monitor import ParsedDeath
 from hardcore.state import DeathRecord, HardcoreState, default_boss_progress
+from collections import Counter
 
 
 
@@ -12,6 +13,82 @@ def format_death_announcement(
         f"💀 Run {run_number} has ended!\n"
         f"{death.message}."
     )
+
+def format_death_totals(state: HardcoreState) -> str:
+    if not state.deaths:
+        return "No Hardcore deaths have been recorded."
+
+    death_totals = Counter(
+        death.player for death in state.deaths
+    )
+
+    sorted_totals = sorted(
+        death_totals.items(),
+        key=lambda item: (-item[1], item[0].casefold()),
+    )
+
+    lines = ["Hardcore death totals:"]
+
+    for player, total in sorted_totals:
+        lines.append(f"{player}: {total}")
+
+    return "\n".join(lines)
+
+def format_death_log(
+    state: HardcoreState,
+    limit: int = 5,
+) -> str:
+    if not state.deaths:
+        return "No Hardcore deaths have been recorded."
+
+    safe_limit = max(1, limit)
+    recent_deaths = state.deaths[-safe_limit:][::-1]
+
+    lines = ["Recent Hardcore deaths:"]
+
+    for death in recent_deaths:
+        message = death.message.rstrip(".")
+        lines.append(f"Run {death.run_number}: {message}.")
+
+    return "\n".join(lines)
+
+def format_player_death_stats(
+    state: HardcoreState,
+    player_name: str,
+) -> str:
+    cleaned_name = player_name.strip()
+
+    matching_deaths = [
+        death
+        for death in state.deaths
+        if death.player.casefold() == cleaned_name.casefold()
+    ]
+
+    if not matching_deaths:
+        return f"No Hardcore deaths found for {cleaned_name}."
+
+    display_name = matching_deaths[0].player
+
+    cause_totals = Counter(
+        death.cause for death in matching_deaths
+    )
+
+    sorted_causes = sorted(
+        cause_totals.items(),
+        key=lambda item: (-item[1], item[0].casefold()),
+    )
+
+    lines = [
+        f"Hardcore stats for {display_name}:",
+        f"Total deaths: {len(matching_deaths)}",
+        "Causes:",
+    ]
+
+    for cause, total in sorted_causes:
+        display_cause = cause.replace("_", " ").title()
+        lines.append(f"{display_cause}: {total}")
+
+    return "\n".join(lines)
 
 def record_death(
         state: HardcoreState,

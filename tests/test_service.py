@@ -1,5 +1,15 @@
 from hardcore.monitor import ParsedDeath
-from hardcore.service import record_death, prepare_next_run, record_boss_defeat, format_boss_announcement, format_boss_progress, normalize_boss_name
+from hardcore.service import (
+    record_death,
+    prepare_next_run,
+    record_boss_defeat,
+    format_boss_announcement,
+    format_boss_progress,
+    normalize_boss_name,
+    format_death_totals,
+    format_death_log,
+    format_player_death_stats,
+)
 from hardcore.state import HardcoreState, DeathRecord
 
 
@@ -152,3 +162,137 @@ def test_normalize_boss_name_accepts_display_name():
     result = normalize_boss_name("  Ender Dragon  ")
 
     assert result == "ender_dragon"
+
+
+def test_format_death_totals_counts_each_player():
+    state = HardcoreState(
+        deaths=[
+            DeathRecord(
+                run_number=1,
+                player="Alex",
+                cause="creeper",
+                message="Alex was blown up by Creeper",
+                timestamp="2026-01-01T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=2,
+                player="Steve",
+                cause="skeleton",
+                message="Steve was shot by Skeleton",
+                timestamp="2026-01-02T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=3,
+                player="Alex",
+                cause="fall",
+                message="Alex fell from a high place",
+                timestamp="2026-01-03T12:00:00Z",
+            ),
+        ]
+    )
+
+    result = format_death_totals(state)
+
+    assert result == (
+        "Hardcore death totals:\n"
+        "Alex: 2\n"
+        "Steve: 1"
+    )
+
+
+def test_format_death_totals_handles_empty_history():
+    state = HardcoreState()
+
+    result = format_death_totals(state)
+
+    assert result == "No Hardcore deaths have been recorded."
+
+
+def test_format_death_log_shows_newest_deaths_first():
+    state = HardcoreState(
+        deaths=[
+            DeathRecord(
+                run_number=1,
+                player="Alex",
+                cause="creeper",
+                message="Alex was blown up by Creeper",
+                timestamp="2026-01-01T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=2,
+                player="Steve",
+                cause="skeleton",
+                message="Steve was shot by Skeleton",
+                timestamp="2026-01-02T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=3,
+                player="Alex",
+                cause="fall",
+                message="Alex fell from a high place",
+                timestamp="2026-01-03T12:00:00Z",
+            ),
+        ]
+    )
+
+    result = format_death_log(state, limit=2)
+
+    assert result == (
+        "Recent Hardcore deaths:\n"
+        "Run 3: Alex fell from a high place.\n"
+        "Run 2: Steve was shot by Skeleton."
+    )
+
+
+def test_format_death_log_handles_empty_history():
+    state = HardcoreState()
+
+    result = format_death_log(state)
+
+    assert result == "No Hardcore deaths have been recorded."
+
+
+def test_format_player_death_stats_counts_causes():
+    state = HardcoreState(
+        deaths=[
+            DeathRecord(
+                run_number=1,
+                player="Alex",
+                cause="creeper",
+                message="Alex was blown up by Creeper",
+                timestamp="2026-01-01T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=2,
+                player="Steve",
+                cause="skeleton",
+                message="Steve was shot by Skeleton",
+                timestamp="2026-01-02T12:00:00Z",
+            ),
+            DeathRecord(
+                run_number=3,
+                player="Alex",
+                cause="fall",
+                message="Alex fell from a high place",
+                timestamp="2026-01-03T12:00:00Z",
+            ),
+        ]
+    )
+
+    result = format_player_death_stats(state, "  aLeX  ")
+
+    assert result == (
+        "Hardcore stats for Alex:\n"
+        "Total deaths: 2\n"
+        "Causes:\n"
+        "Creeper: 1\n"
+        "Fall: 1"
+    )
+
+
+def test_format_player_death_stats_handles_unknown_player():
+    state = HardcoreState()
+
+    result = format_player_death_stats(state, "Herobrine")
+
+    assert result == "No Hardcore deaths found for Herobrine."
